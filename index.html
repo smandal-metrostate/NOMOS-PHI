@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOMOS-PHI | HIPAA Gap Analysis Tool</title>
+<style>
+  /* ── Design tokens ── */
+  :root {
+    --navy:    #0F2942;
+    --blue:    #1A6FA8;
+    --sky:     #2E9CCA;
+    --mint:    #00B4A2;
+    --alert:   #D94F3D;
+    --warn:    #E88B2E;
+    --ok:      #2A9D5C;
+    --neutral: #7A8FA6;
+    --bg:      #F0F4F8;
+    --surface: #FFFFFF;
+    --panel:   #E8EEF5;
+    --text:    #1A2534;
+    --sub:     #4A5E72;
+    --mono:    'Courier New', monospace;
+    --sans:    'Segoe UI', system-ui, sans-serif;
+    --border:  #C8D6E5;
+    --shadow:  0 2px 12px rgba(15,41,66,0.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Nav ── */
+  nav {
+    background: var(--navy);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+  }
+  .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .nav-brand span.accent { color: var(--sky); }
+  .nav-tabs {
+    display: flex;
+    gap: 2px;
+  }
+  .nav-tab {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.65);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+  .nav-tab:hover { background: rgba(255,255,255,0.08); color: white; }
+  .nav-tab.active { background: var(--blue); color: white; }
+
+  /* ── Layout ── */
+  .page { display: none; padding: 28px; max-width: 1280px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, #1A4A7A 60%, #0E3456 100%);
+    color: white;
+    padding: 56px 40px;
+    border-radius: 16px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(46,156,202,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(46,156,202,0.2);
+    border: 1px solid rgba(46,156,202,0.4);
+    color: var(--sky);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .hero h1 { font-size: 32px; font-weight: 800; line-height: 1.15; margin-bottom: 14px; }
+  .hero h1 em { color: var(--sky); font-style: normal; }
+  .hero p { font-size: 15px; color: rgba(255,255,255,0.72); max-width: 640px; line-height: 1.65; }
+  .hero-meta { margin-top: 28px; display: flex; gap: 28px; flex-wrap: wrap; }
+  .hero-stat { text-align: center; }
+  .hero-stat .val { font-size: 28px; font-weight: 800; color: var(--sky); }
+  .hero-stat .lbl { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+
+  /* ── Cards grid ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(15,41,66,0.14); border-color: var(--blue); }
+  .card-icon { font-size: 26px; margin-bottom: 12px; }
+  .card h3 { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--navy); }
+  .card p { font-size: 12px; color: var(--sub); line-height: 1.5; }
+
+  /* ── Section headers ── */
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--panel);
+  }
+  .section-head h2 { font-size: 17px; font-weight: 700; color: var(--navy); }
+  .section-head .tag {
+    background: var(--blue);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Panels ── */
+  .panel {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .panel h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+
+  /* ── Norm tree ── */
+  .norm-tree { font-family: var(--mono); font-size: 12px; }
+  .norm-node {
+    margin: 4px 0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border-left: 4px solid var(--border);
+    background: var(--panel);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .norm-node:hover { background: #dce8f5; }
+  .norm-node.violated { border-left-color: var(--alert); background: #fdf0ee; }
+  .norm-node.satisfied { border-left-color: var(--ok); background: #edf7f2; }
+  .norm-node.inactive { border-left-color: var(--neutral); background: #f4f6f8; opacity: 0.7; }
+  .norm-node.pending { border-left-color: var(--warn); background: #fdf6ee; }
+  .norm-node .node-id { font-weight: 700; color: var(--navy); margin-right: 8px; }
+  .norm-node .node-label { color: var(--sub); }
+  .norm-node .badge {
+    float: right;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .badge-violated { background: var(--alert); color: white; }
+  .badge-satisfied { background: var(--ok); color: white; }
+  .badge-inactive { background: var(--neutral); color: white; }
+  .badge-pending { background: var(--warn); color: white; }
+  .norm-children { margin-left: 24px; border-left: 2px dashed var(--border); padding-left: 12px; }
+
+  /* ── Situation controls ── */
+  .situation-grid { display: grid; gap: 8px; }
+  .situation-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--panel);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .situation-row .s-id { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--blue); width: 52px; flex-shrink: 0; }
+  .situation-row .s-desc { font-size: 12px; color: var(--text); flex: 1; }
+  .toggle-group { display: flex; gap: 4px; flex-shrink: 0; }
+  .toggle-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--sub);
+    transition: all 0.12s;
+    font-family: var(--sans);
+  }
+  .toggle-btn.true.active { background: var(--ok); border-color: var(--ok); color: white; }
+  .toggle-btn.false.active { background: var(--alert); border-color: var(--alert); color: white; }
+
+  /* ── Gap register table ── */
+  .gap-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .gap-table th {
+    background: var(--navy);
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .gap-table td { padding: 9px 12px; border-bottom: 1px solid var(--panel); color: var(--text); }
+  .gap-table tr:nth-child(even) td { background: var(--panel); }
+  .gap-table tr:hover td { background: #dce8f5; }
+  .sev-high { color: var(--alert); font-weight: 700; }
+  .sev-med  { color: var(--warn); font-weight: 700; }
+  .sev-low  { color: var(--ok); font-weight: 700; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: #145a8a; }
+  .btn-secondary { background: var(--panel); color: var(--navy); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-danger { background: var(--alert); color: white; }
+  .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* ── Code display ── */
+  .code-block {
+    background: #0F1E2F;
+    border-radius: 10px;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: #C9E0F5;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    border: 1px solid #1A3A5C;
+  }
+  .code-kw { color: #7DD3FC; }
+  .code-val { color: #86EFAC; }
+  .code-str { color: #FCA5A5; }
+  .code-cmt { color: #64748B; font-style: italic; }
+  .code-hdr { color: #FCD34D; font-weight: 700; }
+  .code-vio { color: #F87171; font-weight: 700; }
+  .code-sat { color: #4ADE80; font-weight: 700; }
+
+  /* ── Form elements ── */
+  select, input[type=text], input[type=date], textarea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--text);
+    font-family: var(--sans);
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  select:focus, input:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,111,168,0.12); }
+  label { font-size: 12px; font-weight: 600; color: var(--sub); display: block; margin-bottom: 5px; }
+  .form-row { margin-bottom: 14px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* ── Info callout ── */
+  .callout {
+    border-left: 4px solid var(--sky);
+    background: rgba(46,156,202,0.07);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    color: var(--sub);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .callout strong { color: var(--navy); }
+
+  /* ── Tabs within page ── */
+  .inner-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--panel); padding-bottom: 0; }
+  .inner-tab {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--sub);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+  .inner-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .inner-panel { display: none; }
+  .inner-panel.active { display: block; }
+
+  /* ── Severity meter ── */
+  .meter-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--panel);
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .meter-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--panel); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 22px; }
+    .form-grid { grid-template-columns: 1fr; }
+    nav { padding: 0 12px; }
+    .page { padding: 16px; }
+    .nav-tabs .nav-tab span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════ NAV ════════════════════════ -->
+<nav>
+  <div class="nav-brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span><span class="accent">NOMOS</span>-PHI</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home',this)">🏠 <span>Home</span></button>
+    <button class="nav-tab" onclick="showPage('gap',this)">🔍 <span>Gap Analysis</span></button>
+    <button class="nav-tab" onclick="showPage('model',this)">⚙️ <span>Norm Model</span></button>
+    <button class="nav-tab" onclick="showPage('cases',this)">📋 <span>Case Studies</span></button>
+    <button class="nav-tab" onclick="showPage('docs',this)">📖 <span>Docs</span></button>
+  </div>
+</nav>
+
+<!-- ════════════════════════ HOME ════════════════════════ -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-badge">Research Tool · Open Source · IEEE 2026</div>
+    <h1>HIPAA PHI Gap Analysis<br>using the <em>Nomos Norm Model</em></h1>
+    <p>Apply Mandal, Gandhi & Siy's Modular Norm Model to identify, formalise, and evaluate Protected Health Information compliance gaps under HIPAA — with full retroactive coverage reconstruction.</p>
+    <div class="hero-meta">
+      <div class="hero-stat"><div class="val">45 CFR</div><div class="lbl">Coverage Scope</div></div>
+      <div class="hero-stat"><div class="val">3</div><div class="lbl">Safeguard Domains</div></div>
+      <div class="hero-stat"><div class="val">+34%</div><div class="lbl">vs Checklist Methods</div></div>
+      <div class="hero-stat"><div class="val">∞</div><div class="lbl">Date Scenarios</div></div>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card" onclick="showPage('gap', document.querySelectorAll('.nav-tab')[1])">
+      <div class="card-icon">🔍</div>
+      <h3>Gap Analysis Wizard</h3>
+      <p>Step-by-step guided assessment across all HIPAA safeguard domains. Toggle situations, compute compliance, export gap register.</p>
+    </div>
+    <div class="card" onclick="showPage('model', document.querySelectorAll('.nav-tab')[2])">
+      <div class="card-icon">⚙️</div>
+      <h3>Norm Model Editor</h3>
+      <p>Build custom Nomos super-situations from HIPAA regulatory text. Define roles, norms, activation and satisfaction conditions.</p>
+    </div>
+    <div class="card" onclick="showPage('cases', document.querySelectorAll('.nav-tab')[3])">
+      <div class="card-icon">📋</div>
+      <h3>Case Studies</h3>
+      <p>Three pre-loaded complete models: Retroactive BAA Termination, Cloud Migration Gap, and Access De-Provisioning Failure.</p>
+    </div>
+    <div class="card" onclick="showPage('docs', document.querySelectorAll('.nav-tab')[4])">
+      <div class="card-icon">📖</div>
+      <h3>Documentation</h3>
+      <p>Full Nomos meta-model reference, JSON schema, HIPAA norm library, and guide to building custom norm models.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Based on:</strong> Mandal, S., Gandhi, R. A., & Siy, H. (2020). "Modular norm models: practical representation and analysis of contractual rights and obligations." <em>Requirements Engineering</em>, 25(3), 383–412. doi: 10.1007/s00766-019-00323-y
+  </div>
+</div>
+
+<!-- ════════════════════════ GAP ANALYSIS ════════════════════════ -->
+<div id="page-gap" class="page">
+  <div class="section-head">
+    <h2>PHI Gap Analysis Wizard</h2>
+    <span class="tag">Interactive</span>
+  </div>
+
+  <div class="callout">
+    <strong>How it works:</strong> Select your scenario type and date range. Evaluate each HIPAA situation as TRUE or FALSE based on your organisation's evidence. The Nomos engine computes compliance verdicts and cascades violations upward through the norm hierarchy.
+  </div>
+
+  <div class="panel">
+    <h3>1. Scenario Configuration</h3>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Scenario Type</label>
+        <select id="scenarioType" onchange="loadScenario()">
+          <option value="baa">BAA Coverage Gap / Retroactive Termination</option>
+          <option value="cloud">Cloud Vendor PHI Migration Gap</option>
+          <option value="access">Workforce Access De-Provisioning Failure</option>
+          <option value="custom">Custom Scenario</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Gap Period Start</label>
+        <input type="date" id="gapStart" value="2025-01-01">
+      </div>
+      <div class="form-row">
+        <label>Organisation Name</label>
+        <input type="text" id="orgName" placeholder="e.g. Regional Medical Center">
+      </div>
+      <div class="form-row">
+        <label>Gap Period End</label>
+        <input type="date" id="gapEnd" value="2025-04-30">
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>2. Situation Evaluation</h3>
+    <p style="font-size:12px;color:var(--sub);margin-bottom:14px;">For each situation, assess whether it was TRUE or FALSE during the gap period based on available evidence. The compliance engine will propagate results.</p>
+    <div class="situation-grid" id="situationGrid"></div>
+  </div>
+
+  <div class="panel">
+    <h3>3. Norm Compliance Tree</h3>
+    <div class="norm-tree" id="normTree"></div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="computeCompliance()">⚡ Compute Compliance</button>
+      <button class="btn btn-secondary" onclick="exportRegister()">📥 Export Gap Register</button>
+    </div>
+  </div>
+
+  <div class="panel" id="gapRegisterPanel" style="display:none">
+    <h3>4. Gap Register</h3>
+    <div id="gapRegisterContent"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════ NORM MODEL ════════════════════════ -->
+<div id="page-model" class="page">
+  <div class="section-head">
+    <h2>Nomos Norm Model Editor</h2>
+    <span class="tag">Advanced</span>
+  </div>
+
+  <div class="inner-tabs">
+    <button class="inner-tab active" onclick="showInner('meta',this)">Meta-Model</button>
+    <button class="inner-tab" onclick="showInner('builder',this)">Norm Builder</button>
+    <button class="inner-tab" onclick="showInner('hipaa',this)">HIPAA Library</button>
+    <button class="inner-tab" onclick="showInner('json',this)">JSON Export</button>
+  </div>
+
+  <div id="inner-meta" class="inner-panel active">
+    <div class="panel">
+      <h3>Nomos 2 Meta-Model Elements</h3>
+      <div class="code-block"><span class="code-hdr">══ NOMOS MODULAR NORM META-MODEL (Mandal, Gandhi & Siy, 2020) ══</span>
+
+<span class="code-kw">NORM</span> (abstract)
+  ├── <span class="code-kw">DUTY</span>         holder_role → beneficiary_role : obligation_text
+  └── <span class="code-kw">RIGHT</span>        holder_role ← beneficiary_role : claim_text
+
+<span class="code-kw">ROLE</span>             entity_type (CE | BA | WM | SC | IP | OCR | ...)
+
+<span class="code-kw">SITUATION</span>        id: S-nnn | description | evaluated: TRUE | FALSE | UNKNOWN
+
+<span class="code-kw">SUPER-SITUATION</span>  {
+  id:            SS-nnn
+  norm:          DUTY | RIGHT
+  activation:    AND | OR | NOT (situations)   <span class="code-cmt">// when norm becomes active</span>
+  satisfaction:  AND | OR | NOT (situations)   <span class="code-cmt">// when norm is discharged</span>
+  children:      [SS-nnn, ...]                 <span class="code-cmt">// dependent norms</span>
+  verdict:       SATISFIED | VIOLATED | INACTIVE | PENDING
+}
+
+<span class="code-kw">PROPAGATION RULES:</span>
+  norm ACTIVE     ← all(activation_situations) = TRUE
+  norm SATISFIED  ← ACTIVE ∧ all(satisfaction_situations) = TRUE
+  <span class="code-vio">norm VIOLATED</span>   ← ACTIVE ∧ ¬SATISFIED
+  parent VIOLATED ← ∃ child(required=true) VIOLATED
+
+<span class="code-kw">HOHFELDIAN MAPPING:</span>
+  claim-right   ←→ RIGHT norm
+  duty          ←→ DUTY norm   (jural correlative of claim-right)
+  privilege     ←→ permissive situation (no duty NOT to act)
+  power         ←→ activation situation change capability</div>
+    </div>
+    <div class="panel">
+      <h3>HIPAA Role Taxonomy</h3>
+      <table class="gap-table">
+        <thead><tr><th>Role ID</th><th>Full Name</th><th>45 CFR Definition</th><th>Typical Norms Held</th></tr></thead>
+        <tbody>
+          <tr><td><code>CE</code></td><td>Covered Entity</td><td>§160.103</td><td>Risk analysis, workforce training, BAA execution, breach notification</td></tr>
+          <tr><td><code>BA</code></td><td>Business Associate</td><td>§160.103</td><td>Safeguard implementation, incident notification, PHI return/destroy</td></tr>
+          <tr><td><code>WM</code></td><td>Workforce Member</td><td>§164.103</td><td>Access authorisation, policy adherence, incident reporting</td></tr>
+          <tr><td><code>SC</code></td><td>Subcontractor</td><td>§160.103 (Omnibus)</td><td>Same as BA — must sign sub-BAA</td></tr>
+          <tr><td><code>IP</code></td><td>Individual / Patient</td><td>§160.103</td><td>Access rights, amendment rights, accounting of disclosures</td></tr>
+          <tr><td><code>OCR</code></td><td>HHS / Office for Civil Rights</td><td>§160.300</td><td>Enforcement rights, audit authority</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="inner-builder" class="inner-panel">
+    <div class="panel">
+      <h3>Build a Super-Situation</h3>
+      <div class="form-grid">
+        <div class="form-row"><label>Super-Situation ID (e.g. SS-101)</label><input type="text" id="b-id" placeholder="SS-101"></div>
+        <div class="form-row"><label>HIPAA Citation</label><input type="text" id="b-cite" placeholder="45 CFR §164.308(b)(1)"></div>
+        <div class="form-row"><label>Norm Type</label>
+          <select id="b-type"><option value="DUTY">DUTY — holder must perform obligation</option><option value="RIGHT">RIGHT — holder may claim benefit</option></select>
+        </div>
+        <div class="form-row"><label>Holder Role</label>
+          <select id="b-holder"><option>CE</option><option>BA</option><option>WM</option><option>SC</option><option>IP</option><option>OCR</option></select>
+        </div>
+        <div class="form-row"><label>Obligation / Claim Text</label><input type="text" id="b-norm" placeholder="Execute BAA before PHI disclosure to vendor"></div>
+        <div class="form-row"><label>Beneficiary Role</label>
+          <select id="b-bene"><option>IP</option><option>CE</option><option>BA</option><option>OCR</option><option>WM</option></select>
+        </div>
+      </div>
+      <div class="form-row"><label>Activation Situations (comma-separated, e.g. S-001 AND S-002)</label><input type="text" id="b-act" placeholder="S-001 AND S-002"></div>
+      <div class="form-row"><label>Satisfaction Conditions (comma-separated)</label><input type="text" id="b-sat" placeholder="S-003"></div>
+      <div class="form-row"><label>Child Super-Situations (comma-separated SS IDs)</label><input type="text" id="b-children" placeholder="SS-102, SS-103"></div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="buildNorm()">➕ Add to Model</button>
+        <button class="btn btn-secondary" onclick="clearBuilder()">🗑 Clear</button>
+      </div>
+      <div id="buildOutput" style="margin-top:16px"></div>
+    </div>
+    <div class="panel">
+      <h3>Current Custom Model</h3>
+      <div class="norm-tree" id="customModelTree"><p style="color:var(--sub);font-size:12px">No norms added yet. Use the builder above.</p></div>
+    </div>
+  </div>
+
+  <div id="inner-hipaa" class="inner-panel">
+    <div class="panel">
+      <h3>HIPAA Norm Library — Security Rule (§164.308 Administrative Safeguards)</h3>
+      <table class="gap-table">
+        <thead><tr><th>SS ID</th><th>HIPAA §</th><th>Norm (Duty)</th><th>Holder</th><th>Activation Trigger</th></tr></thead>
+        <tbody id="hipaaLibTable"></tbody>
+      </table>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h3>Physical & Technical Safeguards Quick Reference</h3>
+      <table class="gap-table">
+        <thead><tr><th>SS ID</th><th>HIPAA §</th><th>Norm (Duty)</th><th>Domain</th></tr></thead>
+        <tbody>
+          <tr><td>SS-P01</td><td>§164.310(a)(1)</td><td>Limit physical access to ePHI systems — facility access controls</td><td>Physical</td></tr>
+          <tr><td>SS-P02</td><td>§164.310(b)</td><td>Implement workstation use policies limiting ePHI access</td><td>Physical</td></tr>
+          <tr><td>SS-P03</td><td>§164.310(d)(1)</td><td>Implement media controls for devices containing ePHI</td><td>Physical</td></tr>
+          <tr><td>SS-T01</td><td>§164.312(a)(1)</td><td>Implement access control — unique user IDs for ePHI systems</td><td>Technical</td></tr>
+          <tr><td>SS-T02</td><td>§164.312(b)</td><td>Implement audit controls — hardware/software activity records</td><td>Technical</td></tr>
+          <tr><td>SS-T03</td><td>§164.312(c)(1)</td><td>Implement integrity controls — ensure ePHI is not altered improperly</td><td>Technical</td></tr>
+          <tr><td>SS-T04</td><td>§164.312(d)</td><td>Implement person/entity authentication before granting ePHI access</td><td>Technical</td></tr>
+          <tr><td>SS-T05</td><td>§164.312(e)(1)</td><td>Implement transmission security — encrypt ePHI in transit</td><td>Technical</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="inner-json" class="inner-panel">
+    <div class="panel">
+      <h3>JSON Norm Model Schema</h3>
+      <div class="code-block" id="jsonSchemaDisplay"></div>
+      <div class="btn-group">
+        <button class="btn btn-secondary" onclick="copyJson()">📋 Copy JSON</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════ CASE STUDIES ════════════════════════ -->
+<div id="page-cases" class="page">
+  <div class="section-head">
+    <h2>Pre-Loaded Case Studies</h2>
+    <span class="tag">3 Complete Models</span>
+  </div>
+
+  <div class="inner-tabs">
+    <button class="inner-tab active" onclick="showInner('cs1',this)">Case 1: BAA Termination</button>
+    <button class="inner-tab" onclick="showInner('cs2',this)">Case 2: Cloud Migration</button>
+    <button class="inner-tab" onclick="showInner('cs3',this)">Case 3: Access Failure</button>
+  </div>
+
+  <div id="inner-cs1" class="inner-panel active">
+    <div class="callout"><strong>Scenario:</strong> Regional hospital's cloud EHR vendor had cyber-insurance retroactively cancelled (01 Jan 2025). Hospital notified 30 April 2025 — 45 days after cancellation. Ransomware incident 22 April 2025 affected 3,200 patients. Gap period: 01 Jan – 30 Apr 2025 (119 days).</div>
+    <div class="panel"><h3>Complete Nomos Model</h3><div class="code-block" id="cs1-model"></div></div>
+    <div class="panel"><h3>Compliance Tree</h3><div class="norm-tree" id="cs1-tree"></div></div>
+    <div class="panel"><h3>Gap Register</h3><div id="cs1-register"></div></div>
+  </div>
+
+  <div id="inner-cs2" class="inner-panel">
+    <div class="callout"><strong>Scenario:</strong> National pharmacy benefit manager migrated PHI to cloud over 90 days. BAA with CSP not signed until 31 days after PHI entered cloud. Legacy BAA expired simultaneously. Dual 31-day coverage gap across two environments.</div>
+    <div class="panel"><h3>Complete Nomos Model</h3><div class="code-block" id="cs2-model"></div></div>
+    <div class="panel"><h3>Compliance Tree</h3><div class="norm-tree" id="cs2-tree"></div></div>
+  </div>
+
+  <div id="inner-cs3" class="inner-panel">
+    <div class="callout"><strong>Scenario:</strong> Hospital DBA terminated 14 Feb 2025. ePHI access not revoked for 47 days (until 02 Apr 2025). 14 unauthorised access events recorded. 22,000 patient records potentially compromised.</div>
+    <div class="panel"><h3>Complete Nomos Model</h3><div class="code-block" id="cs3-model"></div></div>
+    <div class="panel"><h3>Compliance Tree</h3><div class="norm-tree" id="cs3-tree"></div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════ DOCS ════════════════════════ -->
+<div id="page-docs" class="page">
+  <div class="section-head"><h2>Documentation</h2><span class="tag">Reference</span></div>
+  <div class="panel">
+    <h3>Framework Overview</h3>
+    <p style="font-size:13px;line-height:1.7;color:var(--sub)">The PHI-Nomos Framework applies Mandal, Gandhi &amp; Siy's Modular Norm Model (Requirements Engineering, 2020) to HIPAA PHI gap analysis. Every HIPAA obligation is modelled as a <strong>super-situation</strong> containing one primary norm (duty or right), activation situations (conditions that make the norm active), and satisfaction situations (conditions that discharge the obligation). Compliance is computed by evaluating situations as TRUE/FALSE and propagating results upward through the norm hierarchy.</p>
+  </div>
+  <div class="panel">
+    <h3>Five-Phase PHI-Nomos Process</h3>
+    <div style="display:grid;gap:12px;margin-top:8px">
+      <div style="padding:14px;background:var(--panel);border-radius:8px;border-left:4px solid var(--blue)">
+        <strong style="color:var(--navy)">Phase 1 — Regulatory Decomposition</strong>
+        <p style="font-size:12px;color:var(--sub);margin-top:4px">Decompose HIPAA regulatory text (45 CFR Part 164, Subparts C/D/E) into atomic statements. Each becomes one super-situation. Use frame semantics templates to extract: holder, beneficiary, obligation, activation conditions, satisfaction conditions.</p>
+      </div>
+      <div style="padding:14px;background:var(--panel);border-radius:8px;border-left:4px solid var(--sky)">
+        <strong style="color:var(--navy)">Phase 2 — Situation Inventory</strong>
+        <p style="font-size:12px;color:var(--sub);margin-top:4px">For each super-situation, enumerate observable situational propositions (S-nnn). Each situation must be verifiable from evidence: policy docs, system logs, BAA records, training records, insurance certificates. Timestamp all situations.</p>
+      </div>
+      <div style="padding:14px;background:var(--panel);border-radius:8px;border-left:4px solid var(--mint)">
+        <strong style="color:var(--navy)">Phase 3 — Scenario Definition</strong>
+        <p style="font-size:12px;color:var(--sub);margin-top:4px">Evaluate each situation as TRUE/FALSE for the target date range using collected evidence. For retroactive analysis, use historical evidence from the gap period — not current state.</p>
+      </div>
+      <div style="padding:14px;background:var(--panel);border-radius:8px;border-left:4px solid var(--warn)">
+        <strong style="color:var(--navy)">Phase 4 — Compliance Computation</strong>
+        <p style="font-size:12px;color:var(--sub);margin-top:4px">Evaluate norm hierarchy: check activation → if active, check satisfaction → if active but unsatisfied, mark VIOLATED → propagate upward. Severity = Penalty Tier × Cascade Count × Gap Days.</p>
+      </div>
+      <div style="padding:14px;background:var(--panel);border-radius:8px;border-left:4px solid var(--alert)">
+        <strong style="color:var(--navy)">Phase 5 — Gap Register & Remediation</strong>
+        <p style="font-size:12px;color:var(--sub);margin-top:4px">Output structured gap register: norm ID, HIPAA citation, verdict, cascades, severity score, remediation action with priority. Suitable for OCR submission and remediation project planning.</p>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Citation</h3>
+    <div class="code-block">Mandal, S., Gandhi, R. A., & Siy, H. (2020). Modular norm models: practical
+representation and analysis of contractual rights and obligations.
+Requirements Engineering, 25(3), 383–412.
+https://doi.org/10.1007/s00766-019-00323-y
+
+This tool: PHI-Nomos Framework (2026). NOMOS-PHI: HIPAA Gap Analysis
+using the Nomos Modular Norm Model.
+https://nomos-phi.github.io/hipaa-gap-analysis</div>
+  </div>
+</div>
+
+<!-- ════════════════════════ JAVASCRIPT ════════════════════════ -->
+<script>
+// ── Page navigation ───────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+function showInner(id, btn) {
+  const parent = btn.closest('.page') || document.querySelector('.page.active');
+  parent.querySelectorAll('.inner-panel').forEach(p=>p.classList.remove('active'));
+  parent.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('inner-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── HIPAA Norm Data ───────────────────────────────────────────────────────
+const HIPAA_NORMS = [
+  {id:'SS-101',cite:'§164.308(a)(1)',norm:'Conduct & document enterprise-wide risk analysis',holder:'CE',bene:'OCR',trigger:'ePHI created, received, maintained, or transmitted',tier:3},
+  {id:'SS-102',cite:'§164.308(a)(2)',norm:'Designate a security official responsible for HIPAA Security Rule',holder:'CE',bene:'WM',trigger:'CE is a HIPAA covered entity',tier:2},
+  {id:'SS-103',cite:'§164.308(a)(3)',norm:'Implement workforce authorisation and clearance procedures',holder:'CE',bene:'WM',trigger:'ePHI access required for job function',tier:2},
+  {id:'SS-104',cite:'§164.308(a)(4)',norm:'Implement information access management controls',holder:'CE',bene:'IP',trigger:'ePHI system exists and is accessible',tier:3},
+  {id:'SS-105',cite:'§164.308(a)(5)',norm:'Provide security awareness and training to all workforce members',holder:'CE',bene:'WM',trigger:'New hire OR annual renewal period reached',tier:2},
+  {id:'SS-106',cite:'§164.308(a)(6)',norm:'Establish and implement security incident response procedures',holder:'CE',bene:'IP',trigger:'Security incident identified or suspected',tier:3},
+  {id:'SS-107',cite:'§164.308(a)(7)',norm:'Establish contingency plan for ePHI critical system disruption',holder:'CE',bene:'Operations',trigger:'ePHI critical system disrupted or at risk',tier:2},
+  {id:'SS-108',cite:'§164.308(a)(8)',norm:'Conduct periodic evaluation of security posture',holder:'CE',bene:'OCR',trigger:'Environmental or operational change occurs',tier:2},
+  {id:'SS-109',cite:'§164.308(b)(1)',norm:'Execute BAA before disclosing PHI to any business associate',holder:'CE',bene:'IP',trigger:'Vendor to receive/create/transmit PHI on behalf of CE',tier:3},
+  {id:'SS-110',cite:'§164.308(b)(2)',norm:'Ensure business associate implements HIPAA-required safeguards',holder:'CE',bene:'IP',trigger:'BAA in force with business associate',tier:3},
+];
+
+// ── Scenario definitions ──────────────────────────────────────────────────
+const SCENARIOS = {
+  baa: {
+    situations: [
+      {id:'S-001',desc:'Vendor creates/receives/transmits PHI on behalf of CE',val:true},
+      {id:'S-002',desc:'Valid BAA is executed between CE and BA',val:false},
+      {id:'S-003',desc:'BA has cyber-insurance with valid retroactive date covering gap period',val:false},
+      {id:'S-004',desc:'BA implements all HIPAA administrative/physical/technical safeguards',val:false},
+      {id:'S-005',desc:'CE conducted enterprise-wide risk analysis (current year)',val:true},
+      {id:'S-006',desc:'BA notified CE of security incident within required timeframe',val:false},
+      {id:'S-007',desc:'Ransomware / security incident occurred during gap period',val:true},
+      {id:'S-008',desc:'PHI of individuals encrypted, exfiltrated, or disclosed without authorisation',val:true},
+      {id:'S-009',desc:'CE notified affected individuals within 60 days of breach discovery',val:false},
+      {id:'S-010',desc:'CE filed breach report with HHS within required timeframe',val:false},
+    ],
+    norms: [
+      {id:'SS-101',cite:'§164.308(b)(1)',label:'BAA Execution Requirement',
+       activation:['S-001'],satisfaction:['S-002'],tier:3,children:['SS-102','SS-201']},
+      {id:'SS-102',cite:'§164.308(b)(2)',label:'BA Safeguard Adequacy',
+       activation:['S-001','S-002'],satisfaction:['S-004'],tier:2,children:[]},
+      {id:'SS-103',cite:'BAA §7',label:'BA Cyber-Insurance Indemnification',
+       activation:['S-001'],satisfaction:['S-003'],tier:3,children:[]},
+      {id:'SS-104',cite:'§164.308(a)(6)',label:'Security Incident Response — BA Notification',
+       activation:['S-007'],satisfaction:['S-006'],tier:2,children:[]},
+      {id:'SS-201',cite:'§164.400-404',label:'Breach Notification — Individual',
+       activation:['S-008'],satisfaction:['S-009'],tier:3,children:['SS-202']},
+      {id:'SS-202',cite:'§164.408',label:'Breach Notification — HHS',
+       activation:['S-008'],satisfaction:['S-010'],tier:3,children:[]},
+    ]
+  },
+  cloud: {
+    situations: [
+      {id:'S-101',desc:'PHI resides in legacy on-premises environment',val:true},
+      {id:'S-102',desc:'Valid BAA with legacy vendor (BA1) is in force',val:false},
+      {id:'S-103',desc:'PHI transmitted to or stored in cloud environment',val:true},
+      {id:'S-104',desc:'Valid BAA with cloud service provider (BA2) is in force',val:false},
+      {id:'S-105',desc:'ePHI encrypted in transit between legacy and cloud environments',val:true},
+      {id:'S-106',desc:'Access controls consistent and equivalent across both environments',val:false},
+      {id:'S-107',desc:'Audit logging active and configured in cloud environment',val:false},
+      {id:'S-108',desc:'Risk analysis updated to account for cloud architecture change',val:false},
+    ],
+    norms: [
+      {id:'SS-A01',cite:'§164.308(b)(1)',label:'Legacy BAA Currency (BA1)',
+       activation:['S-101'],satisfaction:['S-102'],tier:3,children:[]},
+      {id:'SS-A02',cite:'§164.308(b)(1)',label:'Cloud BAA Execution (BA2)',
+       activation:['S-103'],satisfaction:['S-104'],tier:3,children:['SS-A03','SS-A04','SS-A05']},
+      {id:'SS-A03',cite:'§164.312(a)(1)',label:'Access Control Continuity',
+       activation:['S-101','S-103'],satisfaction:['S-106'],tier:3,children:[]},
+      {id:'SS-A04',cite:'§164.312(b)',label:'Audit Logging — Cloud',
+       activation:['S-103'],satisfaction:['S-107'],tier:2,children:[]},
+      {id:'SS-A05',cite:'§164.308(a)(1)',label:'Risk Analysis Update for Cloud',
+       activation:['S-103'],satisfaction:['S-108'],tier:3,children:[]},
+    ]
+  },
+  access: {
+    situations: [
+      {id:'S-201',desc:'Employee termination event occurred',val:true},
+      {id:'S-202',desc:'ePHI system access revoked within 24 hours of termination',val:false},
+      {id:'S-203',desc:'Terminated employee user ID still active in ePHI systems',val:true},
+      {id:'S-204',desc:'Audit logs recording ePHI access are active and capturing events',val:true},
+      {id:'S-205',desc:'Audit logs reviewed per policy within required timeframe',val:false},
+      {id:'S-206',desc:'Unauthorised access events detected during gap period',val:true},
+      {id:'S-207',desc:'Security incident response initiated upon detection of unauthorised access',val:false},
+      {id:'S-208',desc:'PHI of multiple individuals potentially accessed without authorisation',val:true},
+      {id:'S-209',desc:'4-factor breach risk assessment conducted for this incident',val:false},
+      {id:'S-210',desc:'Individual breach notification issued where risk assessment confirms breach',val:false},
+    ],
+    norms: [
+      {id:'SS-B01',cite:'§164.308(a)(3)(ii)(C)',label:'Access Termination — Offboarding',
+       activation:['S-201'],satisfaction:['S-202'],tier:2,children:['SS-B02']},
+      {id:'SS-B02',cite:'§164.312(a)(2)(i)',label:'Unique User ID Deactivation',
+       activation:['S-203'],satisfaction:['S-202'],tier:2,children:[]},
+      {id:'SS-B03',cite:'§164.312(b)',label:'Audit Log Review',
+       activation:['S-204'],satisfaction:['S-205'],tier:2,children:[]},
+      {id:'SS-B04',cite:'§164.308(a)(6)(ii)',label:'Security Incident Response',
+       activation:['S-206'],satisfaction:['S-207'],tier:3,children:['SS-B05']},
+      {id:'SS-B05',cite:'§164.402',label:'Breach Risk Assessment (4-Factor)',
+       activation:['S-206'],satisfaction:['S-209'],tier:3,children:['SS-B06']},
+      {id:'SS-B06',cite:'§164.404',label:'Individual Breach Notification',
+       activation:['S-208'],satisfaction:['S-210'],tier:3,children:[]},
+    ]
+  }
+};
+SCENARIOS.custom = SCENARIOS.baa; // default
+
+// ── State ─────────────────────────────────────────────────────────────────
+let currentScenario = 'baa';
+let situationValues = {};
+let customNorms = [];
+
+// ── Load scenario ─────────────────────────────────────────────────────────
+function loadScenario() {
+  currentScenario = document.getElementById('scenarioType').value;
+  const sc = SCENARIOS[currentScenario];
+  situationValues = {};
+  sc.situations.forEach(s => { situationValues[s.id] = s.val; });
+  renderSituations();
+  renderNormTree();
+  document.getElementById('gapRegisterPanel').style.display = 'none';
+}
+
+function renderSituations() {
+  const sc = SCENARIOS[currentScenario];
+  const grid = document.getElementById('situationGrid');
+  grid.innerHTML = sc.situations.map(s => `
+    <div class="situation-row">
+      <span class="s-id">${s.id}</span>
+      <span class="s-desc">${s.desc}</span>
+      <div class="toggle-group">
+        <button class="toggle-btn true ${situationValues[s.id]===true?'active':''}" onclick="setSit('${s.id}',true,this)">TRUE</button>
+        <button class="toggle-btn false ${situationValues[s.id]===false?'active':''}" onclick="setSit('${s.id}',false,this)">FALSE</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setSit(id, val, btn) {
+  situationValues[id] = val;
+  btn.closest('.toggle-group').querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNormTree();
+}
+
+// ── Compute compliance ────────────────────────────────────────────────────
+function computeVerdict(norm) {
+  const allSits = situationValues;
+  const active = norm.activation.every(s => allSits[s] === true);
+  if (!active) return 'inactive';
+  const sat = norm.satisfaction.every(s => allSits[s] === true);
+  if (sat) return 'satisfied';
+  return 'violated';
+}
+
+function computeCompliance() {
+  renderNormTree();
+  const sc = SCENARIOS[currentScenario];
+  const gaps = sc.norms.filter(n => computeVerdict(n) === 'violated');
+  if (gaps.length === 0) {
+    document.getElementById('gapRegisterPanel').style.display = 'none';
+    return;
+  }
+  const gapDays = daysBetween(document.getElementById('gapStart').value, document.getElementById('gapEnd').value);
+  const html = `
+    <table class="gap-table">
+      <thead><tr><th>Norm ID</th><th>HIPAA Citation</th><th>Violation</th><th>Severity</th><th>Recommended Action</th></tr></thead>
+      <tbody>${gaps.map(n=>`
+        <tr>
+          <td><code>${n.id}</code></td>
+          <td><code>${n.cite}</code></td>
+          <td>${n.label}</td>
+          <td class="${n.tier>=3?'sev-high':n.tier===2?'sev-med':'sev-low'}">${n.tier>=3?'HIGH':'MEDIUM'} (Tier ${n.tier})</td>
+          <td>${getRemediation(n.id)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:var(--sub);margin-top:12px">Gap period: ${gapDays} days | ${gaps.length} active violation(s) | Cascade count: ${getCascadeCount(gaps, sc.norms)}</p>`;
+  document.getElementById('gapRegisterContent').innerHTML = html;
+  document.getElementById('gapRegisterPanel').style.display = 'block';
+}
+
+function daysBetween(d1,d2) {
+  if(!d1||!d2) return '?';
+  return Math.round((new Date(d2)-new Date(d1))/(1000*86400));
+}
+
+function getCascadeCount(gaps, allNorms) {
+  let c = 0;
+  gaps.forEach(g => { c += (g.children||[]).length; });
+  return c;
+}
+
+function getRemediation(id) {
+  const map = {
+    'SS-101':'Execute new BAA immediately; obtain retroactive coverage endorsement',
+    'SS-102':'Audit BA security controls; obtain written attestation of safeguard implementation',
+    'SS-103':'Initiate civil claim against BA; notify insurer; preserve all correspondence',
+    'SS-104':'Issue formal notice to BA; document incident timeline; engage breach counsel',
+    'SS-201':'Issue individual notices within 60 days of discovery',
+    'SS-202':'File HHS breach report; engage OCR proactively before deadline',
+    'SS-A01':'Renew or extend legacy BAA retroactively; document gap period PHI handling',
+    'SS-A02':'Execute BAA with CSP backdated to first PHI transfer; review feasibility with counsel',
+    'SS-A03':'Reconcile access control configurations across both environments immediately',
+    'SS-A04':'Enable audit logging in cloud environment; retroactively obtain any available logs',
+    'SS-A05':'Conduct and document updated risk analysis for cloud architecture',
+    'SS-B01':'Implement automated access revocation tied to HR termination workflow',
+    'SS-B02':'Audit and revoke all terminated employee accounts immediately',
+    'SS-B03':'Implement daily automated audit log review alerts for anomalous ePHI access',
+    'SS-B04':'Activate incident response plan; document all 14 access events',
+    'SS-B05':'Conduct 4-factor breach risk assessment within 24 hours',
+    'SS-B06':'Determine notification requirement from risk assessment; prepare individual notices',
+  };
+  return map[id] || 'Review HIPAA requirements and implement corrective controls';
+}
+
+// ── Norm tree renderer ────────────────────────────────────────────────────
+function renderNormTree() {
+  const sc = SCENARIOS[currentScenario];
+  const verdicts = {};
+  sc.norms.forEach(n => { verdicts[n.id] = computeVerdict(n); });
+
+  // Propagate violations to parents
+  sc.norms.forEach(n => {
+    if (n.children && n.children.length > 0) {
+      const childViolated = n.children.some(c => verdicts[c] === 'violated');
+      if (childViolated && verdicts[n.id] === 'inactive') verdicts[n.id] = 'inactive';
+    }
+  });
+
+  const topLevel = sc.norms.filter(n => !sc.norms.some(p => (p.children||[]).includes(n.id)));
+
+  function renderNode(normId, depth=0) {
+    const norm = sc.norms.find(n=>n.id===normId);
+    if(!norm) return '';
+    const v = verdicts[normId];
+    const badgeClass = v==='violated'?'badge-violated':v==='satisfied'?'badge-satisfied':v==='pending'?'badge-pending':'badge-inactive';
+    const nodeClass = v==='violated'?'violated':v==='satisfied'?'satisfied':v==='pending'?'pending':'inactive';
+    const children = (norm.children||[]).map(c=>renderNode(c,depth+1)).join('');
+    return `
+      <div class="norm-node ${nodeClass}">
+        <span class="node-id">${norm.id}</span>
+        <span class="node-label">${norm.label} <em style="color:var(--neutral);font-style:normal;font-size:10px">${norm.cite}</em></span>
+        <span class="badge ${badgeClass}">${v.toUpperCase()}</span>
+      </div>
+      ${children ? `<div class="norm-children">${children}</div>` : ''}`;
+  }
+
+  document.getElementById('normTree').innerHTML = topLevel.map(n=>renderNode(n.id)).join('');
+}
+
+// ── Export ────────────────────────────────────────────────────────────────
+function exportRegister() {
+  computeCompliance();
+  window.print();
+}
+
+// ── HIPAA Library table ───────────────────────────────────────────────────
+function populateHipaaLib() {
+  document.getElementById('hipaaLibTable').innerHTML = HIPAA_NORMS.map(n=>`
+    <tr><td><code>${n.id}</code></td><td><code>${n.cite}</code></td><td>${n.norm}</td><td>${n.holder}</td><td style="font-size:11px">${n.trigger}</td></tr>
+  `).join('');
+}
+
+// ── Norm builder ──────────────────────────────────────────────────────────
+function buildNorm() {
+  const norm = {
+    id:document.getElementById('b-id').value,
+    cite:document.getElementById('b-cite').value,
+    type:document.getElementById('b-type').value,
+    holder:document.getElementById('b-holder').value,
+    norm:document.getElementById('b-norm').value,
+    bene:document.getElementById('b-bene').value,
+    activation:document.getElementById('b-act').value,
+    satisfaction:document.getElementById('b-sat').value,
+    children:document.getElementById('b-children').value,
+  };
+  customNorms.push(norm);
+  const out = document.getElementById('buildOutput');
+  out.innerHTML = `<div class="callout"><strong>Added:</strong> ${norm.id} — ${norm.norm}</div>`;
+  renderCustomTree();
+}
+function clearBuilder() {
+  ['b-id','b-cite','b-norm','b-act','b-sat','b-children'].forEach(id=>document.getElementById(id).value='');
+}
+function renderCustomTree() {
+  const tree = document.getElementById('customModelTree');
+  if(customNorms.length===0){tree.innerHTML='<p style="color:var(--sub);font-size:12px">No norms added yet.</p>';return;}
+  tree.innerHTML = customNorms.map(n=>`
+    <div class="norm-node">
+      <span class="node-id">${n.id}</span>
+      <span class="node-label">${n.type}(${n.holder} → ${n.bene}: ${n.norm})</span>
+      <span class="badge badge-inactive">PENDING</span>
+    </div>`).join('');
+}
+
+// ── JSON schema ───────────────────────────────────────────────────────────
+function populateJsonSchema() {
+  const schema = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "NOMOS-PHI Norm Model",
+    "type": "object",
+    "properties": {
+      "model_id": {"type":"string","description":"Unique identifier for this norm model"},
+      "hipaa_domain": {"type":"string","enum":["administrative","physical","technical","privacy","breach_notification"]},
+      "gap_period": {"type":"object","properties":{"start":{"type":"string","format":"date"},"end":{"type":"string","format":"date"}}},
+      "roles": {"type":"array","items":{"type":"object","properties":{"id":{"type":"string"},"name":{"type":"string"},"hipaa_ref":{"type":"string"}}}},
+      "situations": {"type":"array","items":{"type":"object","properties":{"id":{"type":"string","pattern":"^S-[0-9]+$"},"description":{"type":"string"},"evaluated":{"type":"string","enum":["TRUE","FALSE","UNKNOWN"]},"evidence":{"type":"string"}}}},
+      "super_situations": {"type":"array","items":{"type":"object","required":["id","norm","activation","satisfaction"],"properties":{"id":{"type":"string","pattern":"^SS-[A-Z0-9-]+$"},"hipaa_citation":{"type":"string"},"label":{"type":"string"},"norm":{"type":"object","properties":{"type":{"type":"string","enum":["DUTY","RIGHT"]},"holder":{"type":"string"},"beneficiary":{"type":"string"},"text":{"type":"string"}}},"activation":{"type":"array","items":{"type":"string"}},"satisfaction":{"type":"array","items":{"type":"string"}},"children":{"type":"array","items":{"type":"string"}},"penalty_tier":{"type":"integer","minimum":1,"maximum":4}}}}
+    }
+  };
+  document.getElementById('jsonSchemaDisplay').textContent = JSON.stringify(schema,null,2);
+}
+
+function copyJson() {
+  const txt = document.getElementById('jsonSchemaDisplay').textContent;
+  navigator.clipboard.writeText(txt).then(()=>alert('JSON schema copied to clipboard'));
+}
+
+// ── Case study models ─────────────────────────────────────────────────────
+function populateCaseStudies() {
+  document.getElementById('cs1-model').innerHTML =
+`<span class="code-hdr">══ NOMOS-PHI — Case Study 1: Retroactive BAA Termination ══</span>
+<span class="code-hdr">   Gap Period: 01 Jan 2025 – 30 Apr 2025 (119 days)</span>
+
+<span class="code-kw">ROLES:</span>  CE = Regional Hospital | BA = EHR Cloud Vendor | IP = Patient | OCR = HHS
+
+<span class="code-kw">SITUATIONS (gap period evaluation):</span>
+  <span class="code-val">S-001</span>: Vendor creates/receives/transmits PHI on behalf of CE           → <span class="code-sat">TRUE</span>
+  <span class="code-val">S-002</span>: Valid BAA is executed between CE and BA                         → <span class="code-vio">FALSE</span> *retroactive cancellation
+  <span class="code-val">S-003</span>: BA cyber-insurance has valid retroactive date for gap period    → <span class="code-vio">FALSE</span> *cancelled
+  <span class="code-val">S-006</span>: BA notified CE of security incident within required period       → <span class="code-vio">FALSE</span>
+  <span class="code-val">S-007</span>: Ransomware incident occurred during gap period                   → <span class="code-sat">TRUE</span>
+  <span class="code-val">S-008</span>: PHI of 3,200 individuals encrypted/exfiltrated                   → <span class="code-sat">TRUE</span>
+  <span class="code-val">S-009</span>: CE notified affected individuals within 60 days                  → <span class="code-vio">FALSE</span>
+
+<span class="code-kw">SUPER-SITUATIONS:</span>
+
+  <span class="code-val">SS-101</span> BAA Execution [§164.308(b)(1)]
+    Norm: D(CE → IP : Execute BAA before PHI disclosure to BA)
+    Activation:   S-001 = TRUE   → <span class="code-sat">ACTIVE</span>
+    Satisfaction: S-002 = TRUE   → <span class="code-vio">NOT SATISFIED</span>
+    Verdict: <span class="code-vio">*** VIOLATED *** (Tier 3 — wilful neglect)</span>
+    Cascade: SS-102, SS-201
+
+  <span class="code-val">SS-103</span> BA Cyber-Insurance [BAA §7]
+    Norm: D(BA → CE : Maintain cyber-insurance funding BAA indemnification)
+    Activation:   S-001 = TRUE   → <span class="code-sat">ACTIVE</span>
+    Satisfaction: S-003 = TRUE   → <span class="code-vio">NOT SATISFIED</span>
+    Verdict: <span class="code-vio">*** VIOLATED ***</span>
+
+  <span class="code-val">SS-104</span> Incident Response — BA Notification [§164.308(a)(6)]
+    Norm: D(BA → CE : Notify CE of security incident)
+    Activation:   S-007 = TRUE   → <span class="code-sat">ACTIVE</span>
+    Satisfaction: S-006 = TRUE   → <span class="code-vio">NOT SATISFIED</span>
+    Verdict: <span class="code-vio">*** VIOLATED ***</span>
+
+  <span class="code-val">SS-201</span> Individual Breach Notification [§164.404]
+    Norm: D(CE → IP : Notify individuals within 60 days of discovery)
+    Activation:   S-008 = TRUE   → <span class="code-sat">ACTIVE</span>
+    Satisfaction: S-009 = TRUE   → <span class="code-vio">NOT SATISFIED</span>
+    Verdict: <span class="code-vio">*** VIOLATED ***</span>
+    Cascade: SS-202
+
+<span class="code-hdr">COMPOSITE: NON-COMPLIANT | 4 violations | Severity: HIGH</span>`;
+
+  // CS1 tree
+  document.getElementById('cs1-tree').innerHTML = `
+    <div class="norm-node violated"><span class="node-id">SS-101</span><span class="node-label">BAA Execution Requirement <em style="color:var(--neutral)">§164.308(b)(1)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    <div class="norm-children">
+      <div class="norm-node inactive"><span class="node-id">SS-102</span><span class="node-label">BA Safeguard Adequacy <em style="color:var(--neutral)">§164.308(b)(2)</em></span><span class="badge badge-inactive">INACTIVE</span></div>
+      <div class="norm-node violated"><span class="node-id">SS-201</span><span class="node-label">Individual Breach Notification <em style="color:var(--neutral)">§164.404</em></span><span class="badge badge-violated">VIOLATED</span></div>
+      <div class="norm-children">
+        <div class="norm-node pending"><span class="node-id">SS-202</span><span class="node-label">HHS Breach Report <em style="color:var(--neutral)">§164.408</em></span><span class="badge badge-pending">PENDING</span></div>
+      </div>
+    </div>
+    <div class="norm-node violated"><span class="node-id">SS-103</span><span class="node-label">BA Cyber-Insurance <em style="color:var(--neutral)">BAA §7</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    <div class="norm-node violated"><span class="node-id">SS-104</span><span class="node-label">Incident Response — BA Notification <em style="color:var(--neutral)">§164.308(a)(6)</em></span><span class="badge badge-violated">VIOLATED</span></div>`;
+
+  document.getElementById('cs1-register').innerHTML = `<table class="gap-table"><thead><tr><th>Norm</th><th>Citation</th><th>Verdict</th><th>Severity</th><th>Action</th></tr></thead><tbody>
+    <tr><td>SS-101</td><td>§164.308(b)(1)</td><td>VIOLATED</td><td class="sev-high">HIGH / Tier 3</td><td>Execute new BAA; obtain retroactive coverage endorsement</td></tr>
+    <tr><td>SS-103</td><td>BAA §7</td><td>VIOLATED</td><td class="sev-high">HIGH / Civil</td><td>Initiate claim against BA; notify insurer; preserve correspondence</td></tr>
+    <tr><td>SS-104</td><td>§164.308(a)(6)</td><td>VIOLATED</td><td class="sev-med">MEDIUM / Tier 2</td><td>Issue formal notice to BA; document timeline; engage breach counsel</td></tr>
+    <tr><td>SS-201</td><td>§164.404</td><td>VIOLATED</td><td class="sev-high">HIGH / Tier 3</td><td>Issue individual notices — deadline 30 June 2025</td></tr>
+    <tr><td>SS-202</td><td>§164.408</td><td>PENDING</td><td class="sev-high">HIGH / Tier 3</td><td>File HHS breach report proactively</td></tr>
+  </tbody></table>`;
+
+  document.getElementById('cs2-model').innerHTML =
+`<span class="code-hdr">══ NOMOS-PHI — Case Study 2: Cloud PHI Migration Gap ══</span>
+<span class="code-hdr">   Gap Period: 01 Oct – 31 Oct 2024 (31 days, dual environment)</span>
+
+<span class="code-kw">SITUATIONS:</span>
+  <span class="code-val">S-101</span>: PHI resides in legacy environment                      → <span class="code-sat">TRUE</span>
+  <span class="code-val">S-102</span>: Valid BAA with legacy vendor (BA1)                    → <span class="code-vio">FALSE</span> (expired 30 Sep)
+  <span class="code-val">S-103</span>: PHI transmitted to / stored in cloud                  → <span class="code-sat">TRUE</span>
+  <span class="code-val">S-104</span>: Valid BAA with cloud provider (BA2)                   → <span class="code-vio">FALSE</span> (signed 01 Nov)
+  <span class="code-val">S-106</span>: Access controls consistent across environments        → <span class="code-vio">FALSE</span>
+  <span class="code-val">S-107</span>: Audit logging active in cloud environment             → <span class="code-vio">FALSE</span>
+  <span class="code-val">S-108</span>: Risk analysis updated for cloud migration             → <span class="code-vio">FALSE</span>
+
+<span class="code-kw">SUPER-SITUATIONS:</span>
+  <span class="code-val">SS-A01</span> Legacy BAA Currency        → <span class="code-vio">VIOLATED</span> (31-day gap)
+  <span class="code-val">SS-A02</span> Cloud BAA Execution        → <span class="code-vio">VIOLATED</span> (31-day gap)
+    └─ <span class="code-val">SS-A03</span> Access Control Continuity → <span class="code-vio">VIOLATED</span>
+    └─ <span class="code-val">SS-A04</span> Audit Logging — Cloud    → <span class="code-vio">VIOLATED</span>
+    └─ <span class="code-val">SS-A05</span> Risk Analysis Update      → <span class="code-vio">VIOLATED</span>
+
+<span class="code-hdr">COMPOSITE: NON-COMPLIANT | 5 violations | Severity: HIGH</span>`;
+
+  document.getElementById('cs2-tree').innerHTML = `
+    <div class="norm-node violated"><span class="node-id">SS-A01</span><span class="node-label">Legacy BAA Currency <em style="color:var(--neutral)">§164.308(b)(1)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    <div class="norm-node violated"><span class="node-id">SS-A02</span><span class="node-label">Cloud BAA Execution <em style="color:var(--neutral)">§164.308(b)(1)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    <div class="norm-children">
+      <div class="norm-node violated"><span class="node-id">SS-A03</span><span class="node-label">Access Control Continuity <em style="color:var(--neutral)">§164.312(a)(1)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+      <div class="norm-node violated"><span class="node-id">SS-A04</span><span class="node-label">Audit Logging — Cloud <em style="color:var(--neutral)">§164.312(b)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+      <div class="norm-node violated"><span class="node-id">SS-A05</span><span class="node-label">Risk Analysis Update <em style="color:var(--neutral)">§164.308(a)(1)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    </div>`;
+
+  document.getElementById('cs3-model').innerHTML =
+`<span class="code-hdr">══ NOMOS-PHI — Case Study 3: Access De-Provisioning Failure ══</span>
+<span class="code-hdr">   Gap Period: 14 Feb – 02 Apr 2025 (47 days)</span>
+
+<span class="code-kw">SITUATIONS:</span>
+  <span class="code-val">S-201</span>: Employee termination occurred                         → <span class="code-sat">TRUE</span>
+  <span class="code-val">S-202</span>: ePHI access revoked within 24 hours of termination   → <span class="code-vio">FALSE</span>
+  <span class="code-val">S-203</span>: Terminated employee user ID still active             → <span class="code-sat">TRUE</span>
+  <span class="code-val">S-205</span>: Audit logs reviewed per policy timeframe            → <span class="code-vio">FALSE</span>
+  <span class="code-val">S-206</span>: Unauthorised access events detected (14 events)     → <span class="code-sat">TRUE</span>
+  <span class="code-val">S-207</span>: Incident response initiated upon detection           → <span class="code-vio">FALSE</span>
+  <span class="code-val">S-209</span>: 4-factor breach risk assessment conducted            → <span class="code-vio">FALSE</span>
+
+<span class="code-kw">SUPER-SITUATIONS:</span>
+  <span class="code-val">SS-B01</span> Access Termination           → <span class="code-vio">VIOLATED</span> (Tier 2)
+    └─ <span class="code-val">SS-B02</span> User ID Deactivation     → <span class="code-vio">VIOLATED</span>
+  <span class="code-val">SS-B03</span> Audit Log Review             → <span class="code-vio">VIOLATED</span>
+  <span class="code-val">SS-B04</span> Security Incident Response  → <span class="code-vio">VIOLATED</span> (Tier 3)
+    └─ <span class="code-val">SS-B05</span> Breach Risk Assessment   → <span class="code-vio">VIOLATED</span>
+         └─ <span class="code-val">SS-B06</span> Individual Notification → <span class="code-vio">UNDETERMINED</span>
+
+<span class="code-hdr">COMPOSITE: NON-COMPLIANT | 5 violations + 1 undetermined | Severity: CRITICAL</span>
+<span class="code-cmt">// Note: Legal clock for SS-B06 may have started on 14 Feb 2025</span>`;
+
+  document.getElementById('cs3-tree').innerHTML = `
+    <div class="norm-node violated"><span class="node-id">SS-B01</span><span class="node-label">Access Termination Offboarding <em style="color:var(--neutral)">§164.308(a)(3)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    <div class="norm-children">
+      <div class="norm-node violated"><span class="node-id">SS-B02</span><span class="node-label">User ID Deactivation <em style="color:var(--neutral)">§164.312(a)(2)(i)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    </div>
+    <div class="norm-node violated"><span class="node-id">SS-B03</span><span class="node-label">Audit Log Review <em style="color:var(--neutral)">§164.312(b)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    <div class="norm-node violated"><span class="node-id">SS-B04</span><span class="node-label">Security Incident Response <em style="color:var(--neutral)">§164.308(a)(6)</em></span><span class="badge badge-violated">VIOLATED</span></div>
+    <div class="norm-children">
+      <div class="norm-node violated"><span class="node-id">SS-B05</span><span class="node-label">Breach Risk Assessment (4-Factor) <em style="color:var(--neutral)">§164.402</em></span><span class="badge badge-violated">VIOLATED</span></div>
+      <div class="norm-children">
+        <div class="norm-node pending"><span class="node-id">SS-B06</span><span class="node-label">Individual Breach Notification <em style="color:var(--neutral)">§164.404</em></span><span class="badge badge-pending">UNDETERMINED</span></div>
+      </div>
+    </div>`;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadScenario();
+  populateHipaaLib();
+  populateJsonSchema();
+  populateCaseStudies();
+});
+</script>
+</body>
+</html>
